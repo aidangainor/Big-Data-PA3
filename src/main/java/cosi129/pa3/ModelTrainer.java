@@ -3,6 +3,9 @@ package cosi129.pa3;
 import java.io.IOException;
 import java.util.List;
 
+import java.util.TreeSet;
+import java.util.SortedSet;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -15,21 +18,24 @@ import org.apache.mahout.classifier.naivebayes.NaiveBayesModel;
 import org.apache.mahout.classifier.naivebayes.training.TrainNaiveBayesJob;
 
 public class ModelTrainer {
-	String sequenceFilePath;
-	LemmaVectorizer vectorizer;
+	private String sequenceFilePath;
+	private SortedSet<String> classifications;
+	private LemmaVectorizer vectorizer;
+	
 	/*
 	 * Takes in an HDFS path to the directory storing the sequence files and a LemmaVectorizer object
 	 */
 	public ModelTrainer(String sequenceFilePath, LemmaVectorizer vectorizer) {
 		this.sequenceFilePath = sequenceFilePath;
 		this.vectorizer = vectorizer;
+		this.classifications = new TreeSet<String>();
 	}
 	
 	/*
-	 * Takes in two path strings and creates vectors for the training data
-	 * fullLemmaIndexPath: The path for both the training data and 
+	 * Takes path string of training data and generates sequence files
 	 */
-	public void initializeTrainingSetVectors(String trainingDataPath) throws IOException {
+	public void createSequenceFilesFromVectors(String trainingDataPath) 
+			throws IOException {
 		Configuration conf = new Configuration();
 		FileSystem fs = FileSystem.getLocal(conf);
 		Path seqFilePath = new Path(this.sequenceFilePath);
@@ -40,7 +46,11 @@ public class ModelTrainer {
 		for (MahoutVector vector : vectors) {
 			VectorWritable vectorWritable = new VectorWritable();
 			vectorWritable.set(vector.getVector());
-			writer.append(new Text("/" + vector.getClassifier() + "/"), vectorWritable);
+			String classification = vector.getClassifier();
+			// add the classification to our internal set of classifications
+			// this is to keep track of *all* professions in a sorted manner for later use
+			this.classifications.add(classification);
+			writer.append(new Text("/" + classification + "/"), vectorWritable);
 		}
 		writer.close();
 	}
@@ -48,7 +58,8 @@ public class ModelTrainer {
 	/*
 	 * Train the model and get it as an AbstractVectorClassifier object
 	 */
-	public AbstractVectorClassifier getTrainedModel() throws Exception {
+	public AbstractVectorClassifier getTrainedModel() 
+			throws Exception {
 		Configuration conf = new Configuration();
 		FileSystem fs = FileSystem.getLocal(conf);
 		
@@ -69,5 +80,12 @@ public class ModelTrainer {
 		
 	    AbstractVectorClassifier classifier = new ComplementaryNaiveBayesClassifier(naiveBayesModel);
 	    return classifier;
+	}
+	
+	/*
+	 * Get a sorted array of classifications
+	 */
+	public String[] getProfessionsList() {
+		return classifications.toArray(new String[classifications.size()]);
 	}
 }
