@@ -3,14 +3,19 @@ package cosi129.pa3;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 import cosi129.pa3.StringIntegerList.StringInteger;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -19,7 +24,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.KeyValueTextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
 public class LemmaIndexFormater {
 	private final static String PROFESSIONS_FILE = "professions.txt";
@@ -30,9 +34,11 @@ public class LemmaIndexFormater {
 	public static HashMap<String, ArrayList<String>> getProfessionMapping() 
 			throws IOException {
 		HashMap<String, ArrayList<String>> professionMapping = new HashMap<String, ArrayList<String>>();
-        BufferedReader bufferedReader = null;
+		BufferedReader bufferedReader = null;
 		try {
-            bufferedReader =  new BufferedReader(new FileReader(PROFESSIONS_FILE));
+			InputStream profFile = LemmaIndexFormater.class.getResourceAsStream(PROFESSIONS_FILE);
+			InputStreamReader profInStream = new InputStreamReader(profFile);
+			bufferedReader = new BufferedReader(profInStream);
 			String line;
 			while ((line = bufferedReader.readLine()) != null) {
                 String[] split = line.split(":");
@@ -86,8 +92,10 @@ public class LemmaIndexFormater {
 	}
 	
 	public static class ProfessionReducer extends Reducer<Text, Text, Text, Text> {
-		public void reduce(Text profession, Iterable<Text> terms, Context context) throws IOException, InterruptedException {
-			HashMap<String, Integer> lemmaCounts = new HashMap<String, Integer>();
+		public void reduce(Text profession, Iterable<Text> terms, Context context) 
+				throws IOException, InterruptedException {
+			System.out.println("in reducer!");
+			HashMap<String, Integer> lemmaFrequency = new HashMap<String, Integer>();
 			Iterator<Text> iter = terms.iterator();
 			
 			while(iter.hasNext()) {
@@ -97,22 +105,33 @@ public class LemmaIndexFormater {
 				int lemmaCount = 0;
 				try {
 					lemmaCount = Integer.parseInt(lemmaAndCount[1]);
+					if (lemmaFrequency.containsKey(lemma)) {
+						lemmaFrequency.put(lemma, lemmaFrequency.get(lemma) + lemmaCount);
+					} else {
+						lemmaFrequency.put(lemma, lemmaCount);
+					}
 				} catch (NumberFormatException e) {
 					// This means malformed data from the provided lemma index
 					// This is not our problem, so ignore this exception.
 				}
-				if (lemmaCounts.containsKey(lemma)) {
-					lemmaCounts.put(lemma, lemmaCounts.get(lemma) + lemmaCount);
-				} else {
-					lemmaCounts.put(lemma, lemmaCount);
-				}
 			}
-			StringIntegerList lemmaToWrite = new StringIntegerList(lemmaCounts);
+			
+			// Make lemmaFrequency hash into TF (term frequency) form, so we can later compute TF-IDF
+			// To do this, we must get a count of lemmas in this profession
+			int count = 0;
+			for (String key : lemmaFrequency.keySet())
+				count += lemmaFrequency.get(key);
+			for (String key : lemmaFrequency.keySet()) {
+				// Normalize data, we stay in Integer format to keep compatibility with StringIntegerList class
+				lemmaFrequency.put(key, (int) ((lemmaFrequency.get(key)/(double) count) * 100000.0));
+			}
+			StringIntegerList lemmaToWrite = new StringIntegerList(lemmaFrequency);
 			context.write(profession, new Text(lemmaToWrite.toString()));
 		}
 	}
 	
-	public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+	public static void main(String[] args) 
+			throws IOException, ClassNotFoundException, InterruptedException {
 		Configuration conf = new Configuration();
 		String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
 		
@@ -122,13 +141,19 @@ public class LemmaIndexFormater {
 		job.setReducerClass(ProfessionReducer.class);
 		
 		job.setInputFormatClass(KeyValueTextInputFormat.class);
+		
 		conf.set("mapreduce.input.keyvaluelinerecordreader.key.value.separator","\t");
 		job.setMapOutputValueClass(Text.class);
 		job.setMapOutputKeyClass(Text.class);
 		job.setOutputKeyClass(Text.class);
-		job.setOutputFormatClass(SequenceFileOutputFormat.class);
-		FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
-		FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
-		System.exit(job.waitForCompletion(true)? 0: 1);
+		job.setOutputValueClass(Text.class);
+		
+		try {
+			FileInputFormat.addInputPath(job, new Path(otherArgs[0]));
+			FileOutputFormat.setOutputPath(job, new Path(otherArgs[1]));
+			System.exit(job.waitForCompletion(true)? 0: 1);
+		} catch (ArrayIndexOutOfBoundsException e) {
+			System.out.println("Usage: LemmaIndexFormater input_dir output_dir");
+		}
 	}
 }

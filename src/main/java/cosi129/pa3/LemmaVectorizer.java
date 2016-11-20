@@ -3,9 +3,12 @@ package cosi129.pa3;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.Vector;
 
@@ -30,8 +33,10 @@ public class LemmaVectorizer {
 	 */
 	public HashMap<String, Integer> createVectorMappingForAllLemmas(String originalLemmaPath) throws IOException {
 		int uniqueWordCount = 0;
+		FileSystem fs = FileSystem.get(new Configuration());
 		HashMap<String, Integer> wordsAndIndexMap = new HashMap<String, Integer>();
-		BufferedReader originalLemmaReader = new BufferedReader(new FileReader(originalLemmaPath));
+		Path pt = new Path(originalLemmaPath);
+		BufferedReader originalLemmaReader = new BufferedReader(new InputStreamReader(fs.open(pt)));
 		String line;
 		while ((line = originalLemmaReader.readLine()) != null) {
 			StringIntegerList sil = new StringIntegerList();
@@ -54,8 +59,10 @@ public class LemmaVectorizer {
 	 */
 	public ArrayList<MahoutVector> vectorizeLemmaFile(String pathString) throws IOException {
 		ArrayList<MahoutVector> vectors = new ArrayList<MahoutVector>();
+		FileSystem fs = FileSystem.get(new Configuration());
 		String line;
-		BufferedReader fileReader = new BufferedReader(new FileReader(pathString));
+		Path pt = new Path(pathString);
+        BufferedReader fileReader = new BufferedReader(new InputStreamReader(fs.open(pt)));
 
 		while ((line = fileReader.readLine()) != null) {
 			String[] splits = line.split("\t");
