@@ -7,10 +7,10 @@ import org.apache.mahout.classifier.AbstractVectorClassifier;
 import org.apache.mahout.math.Vector;
 
 public class ModelTester {
-	static final String PERSON_LEMMA_INDEX = "";
-	static final String SEQUENCE_FILE_PATH = "";
-	static final String TRAINING_SET_PATH = "";
-	static final String TEST_SET_PATH = "";
+	static final String PERSON_LEMMA_INDEX = "/tf5/part-r-00000";
+	static final String SEQUENCE_FILE_PATH = "/seq_container/seq_vector_file";
+	static final String TRAINING_SET_PATH = "/tf5/part-r-00000";
+	static final String TEST_SET_PATH = "/tf5/part-r-00000";
 	
 	private static class Prediction {
 		public double probability;
@@ -68,6 +68,7 @@ public class ModelTester {
 	}
 	
 	public static void main(String[] args) throws Exception {
+		System.out.println("Attempting to run test");
 		// Create a lemma vectorizer from the original lemma file
 		LemmaVectorizer lv = new LemmaVectorizer(PERSON_LEMMA_INDEX );
 		// Set up our model from the full lemma and training data files

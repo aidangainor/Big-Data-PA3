@@ -2,7 +2,8 @@ package cosi129.pa3;
 
 import java.io.IOException;
 import java.util.List;
-
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.TreeSet;
 import java.util.SortedSet;
 
@@ -35,12 +36,13 @@ public class ModelTrainer {
 	 * Takes path string of training data and generates sequence files
 	 */
 	public void createSequenceFilesFromVectors(String trainingDataPath) 
-			throws IOException {
+			throws IOException, URISyntaxException {
+		System.out.println("About to write sequence files");
 		Configuration conf = new Configuration();
-		FileSystem fs = FileSystem.getLocal(conf);
-		Path seqFilePath = new Path(this.sequenceFilePath);
-		fs.delete(seqFilePath, false);
-		SequenceFile.Writer writer = SequenceFile.createWriter(fs, conf, seqFilePath, Text.class, VectorWritable.class);
+		URI seqFilePath = new URI(this.sequenceFilePath);
+		FileSystem fs = FileSystem.get(new Configuration());
+		fs.delete(new Path(seqFilePath));
+		SequenceFile.Writer writer = SequenceFile.createWriter(fs, conf, new Path(seqFilePath), Text.class, VectorWritable.class);
 		List<MahoutVector> vectors = vectorizer.vectorizeLemmaFile(trainingDataPath);
 		
 		for (MahoutVector vector : vectors) {

@@ -37,6 +37,7 @@ public class LemmaVectorizer {
 		int uniqueWordCount = 0;
 		FileSystem fs = FileSystem.get(new Configuration());
 		HashMap<String, Integer> wordsAndIndexMap = new HashMap<String, Integer>();
+		System.out.println("lemma path = " + originalLemmaPath);
 		Path pt = new Path(originalLemmaPath);
 		BufferedReader originalLemmaReader = new BufferedReader(new InputStreamReader(fs.open(pt)));
 		String line;
@@ -46,8 +47,8 @@ public class LemmaVectorizer {
 			for (StringInteger si : sil.getIndices()) {
 				String lemma = si.getString();
 				if (!wordsAndIndexMap.containsKey(lemma)) {
-					uniqueWordCount++;
 					wordsAndIndexMap.put(lemma, uniqueWordCount);
+					uniqueWordCount++;
 				}
 			}
 		}
@@ -78,7 +79,8 @@ public class LemmaVectorizer {
 			for (StringInteger si : sil.getIndices()) {
 				String lemma = si.getString();
 				Integer value = si.getValue();
-				vector.set(this.wordsAndIndexMap.get(lemma), value);
+				Integer vectorIndex = this.wordsAndIndexMap.get(lemma);
+				vector.set(vectorIndex, value);
 			}
 			MahoutVector mahoutVector = new MahoutVector(classifier, vector);
 			vectors.add(mahoutVector);
