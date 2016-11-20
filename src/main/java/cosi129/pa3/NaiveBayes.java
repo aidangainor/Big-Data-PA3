@@ -95,7 +95,7 @@ public class NaiveBayes {
 					lemmaCount = Integer.parseInt(lemmaAndCount[1]);
 				} catch (NumberFormatException e) {
 					// This means malformed data from the provided lemma index
-					// This is not our problem, so ignore this exception
+					// This is not our problem, so ignore this exception.
 				}
 				if (lemmaCounts.containsKey(lemma)) {
 					lemmaCounts.put(lemma, lemmaCounts.get(lemma) + lemmaCount);
