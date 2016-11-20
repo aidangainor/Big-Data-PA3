@@ -21,7 +21,8 @@ public class LemmaVectorizer {
 	private int vectorSize;
 	
 
-	public LemmaVectorizer(String originalLemmaPath) throws IOException {
+	public LemmaVectorizer(String originalLemmaPath) 
+			throws IOException {
 		this.wordsAndIndexMap = createVectorMappingForAllLemmas(originalLemmaPath);
 	}
 	
@@ -31,7 +32,8 @@ public class LemmaVectorizer {
 	 * The reasoning behind this is we must have 100% consistency of our lemma indexing scheme
 	 * originalLemmaPath: a string path to the original lemma index of name -> list of lemmas
 	 */
-	public HashMap<String, Integer> createVectorMappingForAllLemmas(String originalLemmaPath) throws IOException {
+	public HashMap<String, Integer> createVectorMappingForAllLemmas(String originalLemmaPath) 
+			throws IOException {
 		int uniqueWordCount = 0;
 		FileSystem fs = FileSystem.get(new Configuration());
 		HashMap<String, Integer> wordsAndIndexMap = new HashMap<String, Integer>();
@@ -57,7 +59,8 @@ public class LemmaVectorizer {
 	/*
 	 * Take in a path to either training or test set and make a vector of every line in the file
 	 */
-	public ArrayList<MahoutVector> vectorizeLemmaFile(String pathString) throws IOException {
+	public ArrayList<MahoutVector> vectorizeLemmaFile(String pathString) 
+			throws IOException {
 		ArrayList<MahoutVector> vectors = new ArrayList<MahoutVector>();
 		FileSystem fs = FileSystem.get(new Configuration());
 		String line;

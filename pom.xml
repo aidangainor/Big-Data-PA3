@@ -1,19 +1,42 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <groupId>cosi129.pa3</groupId>
   <artifactId>naivebayes</artifactId>
   <version>0.0.1</version>
   <packaging>jar</packaging>
+  
+  <build>
+  	<plugins>
+	  	<plugin>
+  			<groupId>org.apache.maven.plugins</groupId>
+  			<artifactId>maven-shade-plugin</artifactId>
+  			<version>2.4.3</version>
+ 	 		<executions>
+  				<execution>
+  					<phase>package</phase>
+ 	 				<goals>
+  						<goal>shade</goal>
+  					</goals>
+ 	 			</execution>
+ 			</executions>
+ 	 		<configuration>
+  				<finalName>uber-${project.artifactId}-${project.version}</finalName>
+  				<minimizeJar>true</minimizeJar>
+	   			<artifactSet>
+					<includes>
+						<include> org.apache.mahout:* </include>
+					</includes>
+					<!-- <excludes>
+						<exclude>*:*</exclude>
+					</excludes> -->
+				</artifactSet>
 
-  <name>naivebayes</name>
-  <url>http://maven.apache.org</url>
-
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-	
+  			</configuration>
+  		</plugin>
+  	</plugins>
+  </build>
+  
+  
   <dependencies>
     <dependency>
   		<groupId>org.apache.hadoop</groupId>
