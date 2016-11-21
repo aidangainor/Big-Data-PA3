@@ -1,7 +1,8 @@
 package cosi129.pa3;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.List;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.TreeSet;
@@ -43,9 +44,12 @@ public class ModelTrainer {
 		FileSystem fs = FileSystem.get(new Configuration());
 		fs.delete(new Path(seqFilePath));
 		SequenceFile.Writer writer = SequenceFile.createWriter(fs, conf, new Path(seqFilePath), Text.class, VectorWritable.class);
-		List<MahoutVector> vectors = vectorizer.vectorizeLemmaFile(trainingDataPath);
-		
-		for (MahoutVector vector : vectors) {
+		String line;
+		Path pt = new Path(trainingDataPath);
+		BufferedReader fileReader = new BufferedReader(new InputStreamReader(fs.open(pt)));
+
+		while ((line = fileReader.readLine()) != null) {
+			MahoutVector vector = vectorizer.vectorizeLemmaLine(line);
 			VectorWritable vectorWritable = new VectorWritable();
 			vectorWritable.set(vector.getVector());
 			String classification = vector.getClassifier();
@@ -54,6 +58,8 @@ public class ModelTrainer {
 			this.classifications.add(classification);
 			writer.append(new Text("/" + classification + "/"), vectorWritable);
 		}
+		
+		fileReader.close();
 		writer.close();
 	}
 	

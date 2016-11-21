@@ -1,11 +1,13 @@
 package cosi129.pa3;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.mahout.classifier.AbstractVectorClassifier;
 import org.apache.mahout.math.Vector;
@@ -32,14 +34,20 @@ public class ModelTester {
 			throws Exception {
 		AbstractVectorClassifier model = mt.getTrainedModel();
 		String[] professions = mt.getProfessionsList();
-	    ArrayList<MahoutVector> vectors = lv.vectorizeLemmaFile(testSetPath);
+		// Get a mapping from a persons name to their profession from the MapReduce code used earlier
 		HashMap<String, ArrayList<String>> personToProfessions = LemmaIndexFormater.getProfessionMapping();
 		
 	    int classifiedCorrect = 0;
 	    int classifiedTotal = 0;
 	    
-	    // Guess every person's profession from the test set
-	    for (MahoutVector mahoutVector : vectors) {
+		FileSystem fs = FileSystem.get(new Configuration());
+		String line;
+		Path pt = new Path(testSetPath);
+		BufferedReader fileReader = new BufferedReader(new InputStreamReader(fs.open(pt)));
+
+		// Guess every person's profession from the test set
+		while ((line = fileReader.readLine()) != null) {
+			MahoutVector mahoutVector = lv.vectorizeLemmaLine(line);
 	    	// We consider our prediction correct if one of top 3 classifications is correct
 	    	Prediction[] top3Predictions = {null, null, null};
 	    	Vector predictionVector = model.classifyFull(mahoutVector.getVector());
@@ -62,8 +70,8 @@ public class ModelTester {
 	    			}
 	    		}
 	    	}
-	    	System.out.println("Name = " + name);
 	    	
+	    	System.out.println("Name = " + name);
 	    	for (Prediction prediction : top3Predictions) {
 	    		System.out.println("Prediction prof : " + prediction.profession);
 	    	}
@@ -85,10 +93,12 @@ public class ModelTester {
 	    	}
 	    	System.out.println("");
 	    	classifiedTotal++;
-	    }
-	    System.out.println("AM.HOLMES CHECK " + personToProfessions.get("A. M. Homes"));
+		}
+
 	    double percentCorrect = ((double) classifiedCorrect / classifiedTotal) * 100;
+	    System.out.println("\n**********************************");
 	    System.out.printf("Percent classified correct = %f\n", percentCorrect);
+	    System.out.println("**********************************");
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -99,7 +109,7 @@ public class ModelTester {
 			TEST_SET_PATH = otherArgs[2];
 			SEQUENCE_FILE_PATH = "/seq_file_container/";
 			
-			System.out.println("Attempting to run test");
+			System.out.println("Begginning to run model tester.");
 			// Create a lemma vectorizer from the original lemma file
 			LemmaVectorizer lv = new LemmaVectorizer(PERSON_LEMMA_INDEX );
 			// Set up our model from the full lemma and training data files

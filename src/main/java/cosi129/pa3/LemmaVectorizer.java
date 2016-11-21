@@ -1,7 +1,6 @@
 package cosi129.pa3;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.HashMap;
@@ -58,40 +57,28 @@ public class LemmaVectorizer {
 	}
 	
 	/*
-	 * Take in a path to either training or test set and make a vector of every line in the file
+	 * Takes in a line of a file and turns it into a MahoutVector
 	 */
-	public ArrayList<MahoutVector> vectorizeLemmaFile(String pathString) 
+	public MahoutVector vectorizeLemmaLine(String fileLine) 
 			throws IOException {
-		ArrayList<MahoutVector> vectors = new ArrayList<MahoutVector>();
-		FileSystem fs = FileSystem.get(new Configuration());
-		String line;
-		Path pt = new Path(pathString);
-        BufferedReader fileReader = new BufferedReader(new InputStreamReader(fs.open(pt)));
 
-		while ((line = fileReader.readLine()) != null) {
-			String[] splits = line.split("\t");
-			String classifier = splits[0];
-			String lemmaIndices = splits[1];
-			Vector vector = new RandomAccessSparseVector(vectorSize, vectorSize);
-			
-			StringIntegerList sil = new StringIntegerList();
-			sil.readFromString(lemmaIndices);
-			
-			for (StringInteger si : sil.getIndices()) {
-				String lemma = si.getString();
-				Integer value = si.getValue();
-				Integer vectorIndex = this.wordsAndIndexMap.get(lemma);
-				// If vector index is null, this means for some reason a lemma appeared in training data but not full index ?
-				if (vectorIndex != null) {
-					vector.set(vectorIndex, value);
-				}
+		String[] splits = fileLine.split("\t");
+		String classifier = splits[0];
+		String lemmaIndices = splits[1];
+		Vector vector = new RandomAccessSparseVector(vectorSize, vectorSize);
+		
+		StringIntegerList sil = new StringIntegerList();
+		sil.readFromString(lemmaIndices);
+		
+		for (StringInteger si : sil.getIndices()) {
+			String lemma = si.getString();
+			Integer value = si.getValue();
+			Integer vectorIndex = this.wordsAndIndexMap.get(lemma);
+			// If vector index is null, this means for some reason a lemma appeared in training data but not full index ?
+			if (vectorIndex != null) {
+				vector.set(vectorIndex, value);
 			}
-			MahoutVector mahoutVector = new MahoutVector(classifier, vector);
-			vectors.add(mahoutVector);
-			
 		}
-		fileReader.close();
-		System.out.println(vectors.get(1).getVector().get(5));
-		return vectors;
+		return new MahoutVector(classifier, vector);
 	}
 }
