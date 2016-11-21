@@ -19,9 +19,11 @@ public class ModelTester {
 	private static class Prediction {
 		public double probability;
 		public String profession;
+		public String name;
 		
-		public Prediction(String profession, double probability) {
+		public Prediction(String profession, String name, double probability) {
 			this.profession = profession;
+			this.name = name;
 			this.probability = probability;
 		}
 	}
@@ -32,7 +34,6 @@ public class ModelTester {
 		String[] professions = mt.getProfessionsList();
 	    ArrayList<MahoutVector> vectors = lv.vectorizeLemmaFile(testSetPath);
 		HashMap<String, ArrayList<String>> personToProfessions = LemmaIndexFormater.getProfessionMapping();
-		System.out.println(personToProfessions.get("Albert Einstein"));
 		
 	    int classifiedCorrect = 0;
 	    int classifiedTotal = 0;
@@ -41,10 +42,8 @@ public class ModelTester {
 	    for (MahoutVector mahoutVector : vectors) {
 	    	// We consider our prediction correct if one of top 3 classifications is correct
 	    	Prediction[] top3Predictions = {null, null, null};
-	    	System.out.println("amt professions = " + professions.length);
 	    	Vector predictionVector = model.classifyFull(mahoutVector.getVector());
-	    	System.out.println("length of prediction = " + predictionVector.size());
-	    	System.out.println("classified vector!");
+	    	String name = mahoutVector.getClassifier();
 	    	for (int i = 0; i < predictionVector.size(); i++) {
 	    		double probability = predictionVector.get(i);
 	    		// Update our current top 3 predictions
@@ -53,26 +52,41 @@ public class ModelTester {
 	    			if (prediction != null) {
 	    				if (probability > prediction.probability) {
 	    					String profession = professions[i];
-	    					top3Predictions[j] = new Prediction(profession, probability);
+	    					top3Predictions[j] = new Prediction(profession, name, probability);
+	    					break;
 	    				}
 	    			} else {
 	    				String profession = professions[i];
-    					top3Predictions[j] = new Prediction(profession, probability);
+    					top3Predictions[j] = new Prediction(profession, name, probability);
+    					break;
 	    			}
 	    		}
 	    	}
+	    	System.out.println("Name = " + name);
+	    	
+	    	for (Prediction prediction : top3Predictions) {
+	    		System.out.println("Prediction prof : " + prediction.profession);
+	    	}
 	    	// Check if we got it right
 	    	for (Prediction prediction : top3Predictions) {
-	    		System.out.println(prediction.profession);
-	    		ArrayList<String> correctProfessions = personToProfessions.get(prediction.profession);
-	    		System.out.println(correctProfessions);
-	    		if (correctProfessions.contains(prediction.profession)) {
-	    			classifiedCorrect++;
+	    		ArrayList<String> correctProfessions = personToProfessions.get(prediction.name);
+	    		System.out.println("Correct prof = " + correctProfessions);
+	    		// If the list of correct professions is null, this mean test data contains people without labeled profession
+	    		if (correctProfessions != null) {
+		    		if (correctProfessions.contains(prediction.profession)) {
+		    			classifiedCorrect++;
+		    			break;
+		    		}
+	    		} else {
+	    			// This means not labeled profession, so we ignore this from classification result
+	    			classifiedTotal--;
 	    			break;
 	    		}
 	    	}
+	    	System.out.println("");
 	    	classifiedTotal++;
 	    }
+	    System.out.println("AM.HOLMES CHECK " + personToProfessions.get("A. M. Homes"));
 	    double percentCorrect = ((double) classifiedCorrect / classifiedTotal) * 100;
 	    System.out.printf("Percent classified correct = %f\n", percentCorrect);
 	}
