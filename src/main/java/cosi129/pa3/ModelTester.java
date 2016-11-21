@@ -32,6 +32,7 @@ public class ModelTester {
 		String[] professions = mt.getProfessionsList();
 	    ArrayList<MahoutVector> vectors = lv.vectorizeLemmaFile(testSetPath);
 		HashMap<String, ArrayList<String>> personToProfessions = LemmaIndexFormater.getProfessionMapping();
+		System.out.println(personToProfessions.get("Albert Einstein"));
 		
 	    int classifiedCorrect = 0;
 	    int classifiedTotal = 0;
@@ -40,7 +41,10 @@ public class ModelTester {
 	    for (MahoutVector mahoutVector : vectors) {
 	    	// We consider our prediction correct if one of top 3 classifications is correct
 	    	Prediction[] top3Predictions = {null, null, null};
+	    	System.out.println("amt professions = " + professions.length);
 	    	Vector predictionVector = model.classifyFull(mahoutVector.getVector());
+	    	System.out.println("length of prediction = " + predictionVector.size());
+	    	System.out.println("classified vector!");
 	    	for (int i = 0; i < predictionVector.size(); i++) {
 	    		double probability = predictionVector.get(i);
 	    		// Update our current top 3 predictions
@@ -59,7 +63,9 @@ public class ModelTester {
 	    	}
 	    	// Check if we got it right
 	    	for (Prediction prediction : top3Predictions) {
+	    		System.out.println(prediction.profession);
 	    		ArrayList<String> correctProfessions = personToProfessions.get(prediction.profession);
+	    		System.out.println(correctProfessions);
 	    		if (correctProfessions.contains(prediction.profession)) {
 	    			classifiedCorrect++;
 	    			break;
@@ -77,19 +83,19 @@ public class ModelTester {
 			PERSON_LEMMA_INDEX = otherArgs[0];
 			TRAINING_SET_PATH = otherArgs[1];
 			TEST_SET_PATH = otherArgs[2];
-			SEQUENCE_FILE_PATH = otherArgs[3];
+			SEQUENCE_FILE_PATH = "/seq_file_container/";
+			
+			System.out.println("Attempting to run test");
+			// Create a lemma vectorizer from the original lemma file
+			LemmaVectorizer lv = new LemmaVectorizer(PERSON_LEMMA_INDEX );
+			// Set up our model from the full lemma and training data files
+			ModelTrainer mt = new ModelTrainer(SEQUENCE_FILE_PATH, lv);
+		    mt.createSequenceFilesFromVectors(TRAINING_SET_PATH);
+		    // Now test it
+		    testModel(TEST_SET_PATH, mt, lv);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			System.out.println("Usage: ModelTester lemma_index train_set test_set output_seq_file");
 		}
-		
-		System.out.println("Attempting to run test");
-		// Create a lemma vectorizer from the original lemma file
-		LemmaVectorizer lv = new LemmaVectorizer(PERSON_LEMMA_INDEX );
-		// Set up our model from the full lemma and training data files
-		ModelTrainer mt = new ModelTrainer(SEQUENCE_FILE_PATH, lv);
-	    mt.createSequenceFilesFromVectors(TRAINING_SET_PATH);
-	    // Now test it
-	    testModel(TEST_SET_PATH, mt, lv);
 	}
 }
 

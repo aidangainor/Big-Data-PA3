@@ -73,6 +73,7 @@ public class LemmaVectorizer {
 			String classifier = splits[0];
 			String lemmaIndices = splits[1];
 			Vector vector = new RandomAccessSparseVector(vectorSize, vectorSize);
+			
 			StringIntegerList sil = new StringIntegerList();
 			sil.readFromString(lemmaIndices);
 			
@@ -80,13 +81,17 @@ public class LemmaVectorizer {
 				String lemma = si.getString();
 				Integer value = si.getValue();
 				Integer vectorIndex = this.wordsAndIndexMap.get(lemma);
-				vector.set(vectorIndex, value);
+				// If vector index is null, this means for some reason a lemma appeared in training data but not full index ?
+				if (vectorIndex != null) {
+					vector.set(vectorIndex, value);
+				}
 			}
 			MahoutVector mahoutVector = new MahoutVector(classifier, vector);
 			vectors.add(mahoutVector);
 			
 		}
 		fileReader.close();
+		System.out.println(vectors.get(1).getVector().get(5));
 		return vectors;
 	}
 }

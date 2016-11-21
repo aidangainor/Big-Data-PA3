@@ -14,7 +14,7 @@ import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.mahout.math.VectorWritable;
 import org.apache.mahout.classifier.AbstractVectorClassifier;
-import org.apache.mahout.classifier.naivebayes.ComplementaryNaiveBayesClassifier;
+import org.apache.mahout.classifier.naivebayes.StandardNaiveBayesClassifier;
 import org.apache.mahout.classifier.naivebayes.NaiveBayesModel;
 import org.apache.mahout.classifier.naivebayes.training.TrainNaiveBayesJob;
 
@@ -73,14 +73,14 @@ public class ModelTrainer {
 		
 		TrainNaiveBayesJob trainNaiveBayes = new TrainNaiveBayesJob();
 		trainNaiveBayes.setConf(conf);
-		String[] naiveBayesArguments = { "--input", this.sequenceFilePath, "--output", outputDirectory, "-el", "--overwrite", "--tempDir", tempDirectory };
+		String[] naiveBayesArguments = { "--input", this.sequenceFilePath, "--output", outputDirectory, "--alphaI", "1", "--overwrite", "--tempDir", tempDirectory };
 		trainNaiveBayes.run(naiveBayesArguments);
 		NaiveBayesModel naiveBayesModel = NaiveBayesModel.materialize(new Path(outputDirectory), conf);
 
 		System.out.println("features: " + naiveBayesModel.numFeatures());
 		System.out.println("labels: " + naiveBayesModel.numLabels());
 		
-	    AbstractVectorClassifier classifier = new ComplementaryNaiveBayesClassifier(naiveBayesModel);
+	    AbstractVectorClassifier classifier = new StandardNaiveBayesClassifier(naiveBayesModel);
 	    return classifier;
 	}
 	
