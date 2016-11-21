@@ -3,14 +3,18 @@ package cosi129.pa3;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.mahout.classifier.AbstractVectorClassifier;
 import org.apache.mahout.math.Vector;
 
 public class ModelTester {
-	static final String PERSON_LEMMA_INDEX = "/tf5/part-r-00000";
-	static final String SEQUENCE_FILE_PATH = "/seq_container/seq_vector_file";
-	static final String TRAINING_SET_PATH = "/tf5/part-r-00000";
-	static final String TEST_SET_PATH = "/tf5/part-r-00000";
+	static String PERSON_LEMMA_INDEX;
+	static String SEQUENCE_FILE_PATH;
+	static String TRAINING_SET_PATH;
+	static String TEST_SET_PATH;
 	
 	private static class Prediction {
 		public double probability;
@@ -68,6 +72,16 @@ public class ModelTester {
 	}
 	
 	public static void main(String[] args) throws Exception {
+		String[] otherArgs = new GenericOptionsParser(args).getRemainingArgs();
+		try {
+			PERSON_LEMMA_INDEX = otherArgs[0];
+			TRAINING_SET_PATH = otherArgs[1];
+			TEST_SET_PATH = otherArgs[2];
+			SEQUENCE_FILE_PATH = otherArgs[3];
+		} catch (ArrayIndexOutOfBoundsException e) {
+			System.out.println("Usage: ModelTester lemma_index train_set test_set output_seq_file");
+		}
+		
 		System.out.println("Attempting to run test");
 		// Create a lemma vectorizer from the original lemma file
 		LemmaVectorizer lv = new LemmaVectorizer(PERSON_LEMMA_INDEX );
@@ -78,3 +92,4 @@ public class ModelTester {
 	    testModel(TEST_SET_PATH, mt, lv);
 	}
 }
+
