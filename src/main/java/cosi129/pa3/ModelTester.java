@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.GenericOptionsParser;
@@ -35,66 +36,70 @@ public class ModelTester {
 		AbstractVectorClassifier model = mt.getTrainedModel();
 		String[] professions = mt.getProfessionsList();
 		// Get a mapping from a persons name to their profession from the MapReduce code used earlier
-		HashMap<String, ArrayList<String>> personToProfessions = LemmaIndexFormater.getProfessionMapping();
+		HashMap<String, ArrayList<String>> personToProfessions = LemmaIndexFormater.getProfessionMapping("professions_train.txt");
 		
 	    int classifiedCorrect = 0;
 	    int classifiedTotal = 0;
 	    
 		FileSystem fs = FileSystem.get(new Configuration());
-		String line;
 		Path pt = new Path(testSetPath);
-		BufferedReader fileReader = new BufferedReader(new InputStreamReader(fs.open(pt)));
-
-		// Guess every person's profession from the test set
-		while ((line = fileReader.readLine()) != null) {
-			MahoutVector mahoutVector = lv.vectorizeLemmaLine(line);
-	    	// We consider our prediction correct if one of top 3 classifications is correct
-	    	Prediction[] top3Predictions = {null, null, null};
-	    	Vector predictionVector = model.classifyFull(mahoutVector.getVector());
-	    	String name = mahoutVector.getClassifier();
-	    	for (int i = 0; i < predictionVector.size(); i++) {
-	    		double probability = predictionVector.get(i);
-	    		// Update our current top 3 predictions
-	    		for (int j = 0; j < 3; j++) {
-	    			Prediction prediction = top3Predictions[j];
-	    			if (prediction != null) {
-	    				if (probability > prediction.probability) {
-	    					String profession = professions[i];
-	    					top3Predictions[j] = new Prediction(profession, name, probability);
-	    					break;
-	    				}
-	    			} else {
-	    				String profession = professions[i];
-    					top3Predictions[j] = new Prediction(profession, name, probability);
-    					break;
-	    			}
-	    		}
-	    	}
-	    	
-	    	System.out.println("Name = " + name);
-	    	for (Prediction prediction : top3Predictions) {
-	    		System.out.println("Prediction prof : " + prediction.profession);
-	    	}
-	    	// Check if we got it right
-	    	for (Prediction prediction : top3Predictions) {
-	    		ArrayList<String> correctProfessions = personToProfessions.get(prediction.name);
-	    		System.out.println("Correct prof = " + correctProfessions);
-	    		// If the list of correct professions is null, this mean test data contains people without labeled profession
-	    		if (correctProfessions != null) {
-		    		if (correctProfessions.contains(prediction.profession)) {
-		    			classifiedCorrect++;
-		    			break;
-		    		}
-	    		} else {
-	    			// This means not labeled profession, so we ignore this from classification result
-	    			classifiedTotal--;
-	    			break;
-	    		}
-	    	}
-	    	System.out.println("");
-	    	classifiedTotal++;
-		}
-
+        FileStatus[] status = fs.listStatus(new Path(testSetPath));
+        
+        // Get a list of all test data segements (like part-m-0001, part-m-0002, ...)
+        for (int fileIndex = 0; fileIndex<status.length; fileIndex++) {
+            BufferedReader fileReader = new BufferedReader(new InputStreamReader(fs.open(status[fileIndex].getPath())));
+            String line;
+            while ((line = fileReader.readLine()) != null) {
+    			MahoutVector mahoutVector = lv.vectorizeLemmaLine(line);
+    	    	// We consider our prediction correct if one of top 3 classifications is correct
+    	    	Prediction[] top3Predictions = {null, null, null};
+    	    	Vector predictionVector = model.classifyFull(mahoutVector.getVector());
+    	    	String name = mahoutVector.getClassifier();
+    	    	for (int i = 0; i < predictionVector.size(); i++) {
+    	    		double probability = predictionVector.get(i);
+    	    		// Update our current top 3 predictions
+    	    		for (int j = 0; j < 3; j++) {
+    	    			Prediction prediction = top3Predictions[j];
+    	    			if (prediction != null) {
+    	    				if (probability > prediction.probability) {
+    	    					String profession = professions[i];
+    	    					top3Predictions[j] = new Prediction(profession, name, probability);
+    	    					break;
+    	    				}
+    	    			} else {
+    	    				String profession = professions[i];
+        					top3Predictions[j] = new Prediction(profession, name, probability);
+        					break;
+    	    			}
+    	    		}
+    	    	}
+    	    	
+    	    	System.out.println("Name = " + name);
+    	    	for (Prediction prediction : top3Predictions) {
+    	    		System.out.println("Prediction prof : " + prediction.profession);
+    	    	}
+    	    	// Check if we got it right
+    	    	for (Prediction prediction : top3Predictions) {
+    	    		ArrayList<String> correctProfessions = personToProfessions.get(prediction.name);
+    	    		System.out.println("Correct prof = " + correctProfessions);
+    	    		// If the list of correct professions is null, this mean test data contains people without labeled profession
+    	    		if (correctProfessions != null) {
+    		    		if (correctProfessions.contains(prediction.profession)) {
+    		    			classifiedCorrect++;
+    		    			break;
+    		    		}
+    	    		} else {
+    	    			// This means not labeled profession, so we ignore this from classification result
+    	    			classifiedTotal--;
+    	    			break;
+    	    		}
+    	    	}
+    	    	System.out.println("");
+    	    	classifiedTotal++;   
+            }
+            fileReader.close();
+        }
+   
 	    double percentCorrect = ((double) classifiedCorrect / classifiedTotal) * 100;
 	    System.out.println("\n**********************************");
 	    System.out.printf("Percent classified correct = %f\n", percentCorrect);
@@ -118,7 +123,7 @@ public class ModelTester {
 		    // Now test it
 		    testModel(TEST_SET_PATH, mt, lv);
 		} catch (ArrayIndexOutOfBoundsException e) {
-			System.out.println("Usage: ModelTester lemma_index train_set test_set output_seq_file");
+			System.out.println("Usage: ModelTester lemma_index_path train_set_path test_set_dir");
 		}
 	}
 }

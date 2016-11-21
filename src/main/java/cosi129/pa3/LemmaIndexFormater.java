@@ -26,17 +26,17 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
 public class LemmaIndexFormater {
-	private final static String PROFESSIONS_FILE = "professions.txt";
+	private final static String PROFESSIONS_FILE = "professions_train.txt";
 	
 	/*
 	 * From the professions.txt file, make a map of a person's name to their profession(s)
 	 */
-	public static HashMap<String, ArrayList<String>> getProfessionMapping() 
+	public static HashMap<String, ArrayList<String>> getProfessionMapping(String fileName)
 			throws IOException {
 		HashMap<String, ArrayList<String>> professionMapping = new HashMap<String, ArrayList<String>>();
 		BufferedReader bufferedReader = null;
 		try {
-			InputStream profFile = LemmaIndexFormater.class.getResourceAsStream(PROFESSIONS_FILE);
+			InputStream profFile = LemmaIndexFormater.class.getResourceAsStream(fileName);
 			InputStreamReader profInStream = new InputStreamReader(profFile);
 			bufferedReader = new BufferedReader(profInStream);
 			String line;
@@ -70,7 +70,7 @@ public class LemmaIndexFormater {
         
         // Setup builds hash map of names-to-professions before mapper jobs
         protected void setup(Context context) throws IOException, InterruptedException {
-        	professionMapping = getProfessionMapping();
+        	professionMapping = getProfessionMapping(PROFESSIONS_FILE);
     	}
         
 		public void map(Text articleId, Text indices, Context context) throws IOException, InterruptedException {
@@ -94,7 +94,6 @@ public class LemmaIndexFormater {
 	public static class ProfessionReducer extends Reducer<Text, Text, Text, Text> {
 		public void reduce(Text profession, Iterable<Text> terms, Context context) 
 				throws IOException, InterruptedException {
-			System.out.println("in reducer!");
 			HashMap<String, Integer> lemmaFrequency = new HashMap<String, Integer>();
 			Iterator<Text> iter = terms.iterator();
 			
