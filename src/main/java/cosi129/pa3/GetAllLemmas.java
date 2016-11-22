@@ -6,6 +6,7 @@ import cosi129.pa3.StringIntegerList.StringInteger;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -16,21 +17,31 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
 public class GetAllLemmas {
-	public static class LemmaIndexReader extends Mapper<Text, Text, Text, Text> { 
+	public static class LemmaIndexReader extends Mapper<Text, Text, Text, IntWritable> { 
 		public void map(Text articleId, Text indices, Context context) 
 				throws IOException, InterruptedException {
 			StringIntegerList wordFreqList = new StringIntegerList();
 			wordFreqList.readFromString(indices.toString());
 			for (StringInteger index : wordFreqList.getIndices()) {
-				context.write(new Text(index.getString()), new Text(""));
+				String lemma = index.getString().replaceAll("[^\\p{Alnum}\\s]", "");
+				if (lemma.length() > 1) {
+					context.write(new Text(index.getString()), new IntWritable(1));
+				}
 			}
 		}
 	}
 	
-	public static class WriteWord extends Reducer<Text, Text, Text, Text> {
-		public void reduce(Text word, Iterable<Text> terms, Context context) 
+	public static class WriteWord extends Reducer<Text, IntWritable, Text, Text> {	
+		public void reduce(Text word, Iterable<IntWritable> values, Context context) 
 				throws IOException, InterruptedException {
-			context.write(word, new Text(""));
+	    	int sum = 0;
+			for (IntWritable val : values) {
+				sum += val.get();
+			}
+			
+			if (sum > 5) {
+				context.write(word, new Text(""));
+			}
 		}
 	}
 	
@@ -47,7 +58,7 @@ public class GetAllLemmas {
 		job.setInputFormatClass(KeyValueTextInputFormat.class);
 		
 		conf.set("mapreduce.input.keyvaluelinerecordreader.key.value.separator","\t");
-		job.setMapOutputValueClass(Text.class);
+		job.setMapOutputValueClass(IntWritable.class);
 		job.setMapOutputKeyClass(Text.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);

@@ -14,9 +14,9 @@ import org.apache.mahout.classifier.AbstractVectorClassifier;
 import org.apache.mahout.math.Vector;
 
 public class ModelTester {
-	static String PERSON_LEMMA_INDEX;
 	static String SEQUENCE_FILE_PATH;
 	static String TRAINING_SET_PATH;
+	static String DICT_PATH;
 	static String TEST_SET_PATH;
 	
 	private static class Prediction {
@@ -36,7 +36,7 @@ public class ModelTester {
 		AbstractVectorClassifier model = mt.getTrainedModel();
 		String[] professions = mt.getProfessionsList();
 		// Get a mapping from a persons name to their profession from the MapReduce code used earlier
-		HashMap<String, ArrayList<String>> personToProfessions = LemmaIndexFormater.getProfessionMapping("professions_train.txt");
+		HashMap<String, ArrayList<String>> personToProfessions = LemmaIndexFormater.getProfessionMapping("professions_test.txt");
 		
 	    int classifiedCorrect = 0;
 	    int classifiedTotal = 0;
@@ -109,21 +109,24 @@ public class ModelTester {
 	public static void main(String[] args) throws Exception {
 		String[] otherArgs = new GenericOptionsParser(args).getRemainingArgs();
 		try {
-			PERSON_LEMMA_INDEX = otherArgs[0];
+			// This is a path (like dict/part-0000) to a dictionary file of all words
+			DICT_PATH = otherArgs[0];
+			// Path to training set
 			TRAINING_SET_PATH = otherArgs[1];
+			// Path to directory which contains test set
 			TEST_SET_PATH = otherArgs[2];
 			SEQUENCE_FILE_PATH = "/seq_file_container/";
 			
 			System.out.println("Begginning to run model tester.");
 			// Create a lemma vectorizer from the original lemma file
-			LemmaVectorizer lv = new LemmaVectorizer(PERSON_LEMMA_INDEX );
+			LemmaVectorizer lv = new LemmaVectorizer(DICT_PATH);
 			// Set up our model from the full lemma and training data files
 			ModelTrainer mt = new ModelTrainer(SEQUENCE_FILE_PATH, lv);
 		    mt.createSequenceFilesFromVectors(TRAINING_SET_PATH);
 		    // Now test it
 		    testModel(TEST_SET_PATH, mt, lv);
 		} catch (ArrayIndexOutOfBoundsException e) {
-			System.out.println("Usage: ModelTester lemma_index_path train_set_path test_set_dir");
+			System.out.println("Usage: ModelTester dict_path train_set_path test_set_dir");
 		}
 	}
 }
